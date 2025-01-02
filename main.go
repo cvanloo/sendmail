@@ -20,7 +20,8 @@ var (
 	dkimSelect = flag.String("signselect", "default", "DKIM Selector")
 	dkimDomain = flag.String("signdomain", "", "DKIM Domain")
 	dkimPrivateKeyPath = flag.String("signkey", "", "Private key to use for DKIM signing")
-	toAddr = flag.String("host", "", "SMTP domain and port to send email to")
+	fromAddr = flag.String("fromhost", "", "sending domain (must match rDNS record)")
+	toAddr = flag.String("tohost", "", "SMTP domain and port to send email to")
 	to = flag.String("to", "", "Receiver email address")
 	from = flag.String("from", "", "Sender email address")
 	subject = flag.String("subject", "Ping, now please pong", "Subject of the Message")
@@ -68,7 +69,7 @@ func main() {
 	}
 	m := Mailer{
 		ToAddr: *toAddr,
-		FromAddr: *dkimDomain,
+		FromAddr: *fromAddr,
 		To: *to,
 		From: *from,
 		SignOpts: &dkim.SignOptions{
