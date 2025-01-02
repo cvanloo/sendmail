@@ -68,6 +68,7 @@ func main() {
 	}
 	m := Mailer{
 		ToAddr: *toAddr,
+		FromAddr: *dkimDomain,
 		To: *to,
 		From: *from,
 		SignOpts: &dkim.SignOptions{
@@ -103,11 +104,11 @@ func parsePrivateKey(file string) (crypto.Signer, error) {
 }
 
 type Mailer struct {
-	ToAddr, From, To string
+	ToAddr, FromAddr, From, To string
 	SignOpts *dkim.SignOptions
 }
 
-func (m Mailer) SendMail(subject, message string) error {
+func (m Mailer) SendMail(subject, message string) (err error) {
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", m.From)
 	msg.SetHeader("To", m.To)
@@ -120,7 +121,31 @@ func (m Mailer) SendMail(subject, message string) error {
 	if err := dkim.Sign(&signedMessage, &clearMessage, m.SignOpts); err != nil {
 		return err
 	}
-	if err := smtp.SendMail(m.ToAddr, nil, m.From, []string{m.To}, signedMessage.Bytes()); err != nil {
+	c, err := smtp.Dial(m.ToAddr)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	if err := c.Hello(m.FromAddr); err != nil {
+		return err
+	}
+	if err := c.Mail(m.From); err != nil {
+		return err
+	}
+	if err := c.Rcpt(m.To); err != nil {
+		return err
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(signedMessage.Bytes()); err != nil {
+		return err
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	if err := c.Quit(); err != nil {
 		return err
 	}
 	return nil
