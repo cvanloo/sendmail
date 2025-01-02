@@ -78,6 +78,7 @@ func main() {
 	}
 	if err := m.SendMail(*subject, *message); err != nil {
 		fmt.Printf("sending mail: %v", err)
+		return
 	}
 	fmt.Println("mail sent successfully")
 }
